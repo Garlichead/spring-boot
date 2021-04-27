@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2020 the original author or authors.
+ * Copyright 2012-2021 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.boot.maven;
 
 import java.io.BufferedReader;
@@ -29,6 +30,8 @@ import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 
 import org.junit.jupiter.api.TestTemplate;
+import org.junit.jupiter.api.condition.DisabledForJreRange;
+import org.junit.jupiter.api.condition.JRE;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import org.springframework.boot.loader.tools.FileUtils;
@@ -246,6 +249,7 @@ class JarIntegrationTests extends AbstractArchiveIntegrationTests {
 		});
 	}
 
+	@DisabledForJreRange(min = JRE.JAVA_16) // Remove this once Kotlin supports Java 16
 	@TestTemplate
 	void whenAProjectUsesKotlinItsModuleMetadataIsRepackagedIntoBootInfClasses(MavenBuild mavenBuild) {
 		mavenBuild.project("jar-with-kotlin-module").execute((project) -> {
@@ -310,7 +314,8 @@ class JarIntegrationTests extends AbstractArchiveIntegrationTests {
 						"snapshot-dependencies", "application");
 				assertThat(layerIndex.get("application")).contains("BOOT-INF/lib/jar-release-0.0.1.RELEASE.jar",
 						"BOOT-INF/lib/jar-snapshot-0.0.1.BUILD-SNAPSHOT.jar");
-				assertThat(layerIndex.get("dependencies")).contains("BOOT-INF/lib/log4j-api-2.12.1.jar");
+				assertThat(layerIndex.get("dependencies"))
+						.anyMatch((dependency) -> dependency.startsWith("BOOT-INF/lib/log4j-api-2"));
 			}
 			catch (IOException ex) {
 			}
@@ -401,6 +406,7 @@ class JarIntegrationTests extends AbstractArchiveIntegrationTests {
 			while (line != null) {
 				if (line.startsWith("- ")) {
 					layer = line.substring(3, line.length() - 2);
+					index.put(layer, new ArrayList<>());
 				}
 				else if (line.startsWith("  - ")) {
 					index.computeIfAbsent(layer, (key) -> new ArrayList<>()).add(line.substring(5, line.length() - 1));

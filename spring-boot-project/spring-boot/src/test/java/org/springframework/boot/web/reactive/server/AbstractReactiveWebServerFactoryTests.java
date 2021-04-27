@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2020 the original author or authors.
+ * Copyright 2012-2021 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,8 @@
 
 package org.springframework.boot.web.reactive.server;
 
-import java.io.File;
 import java.io.FileInputStream;
+import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
@@ -37,7 +37,6 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpResponse;
-import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslProvider;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
@@ -47,6 +46,7 @@ import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.netty.NettyPipeline;
+import reactor.netty.http.Http11SslContextSpec;
 import reactor.netty.http.client.HttpClient;
 import reactor.test.StepVerifier;
 
@@ -116,6 +116,16 @@ public abstract class AbstractReactiveWebServerFactoryTests {
 	}
 
 	@Test
+	void portIsMinusOneWhenConnectionIsClosed() {
+		AbstractReactiveWebServerFactory factory = getFactory();
+		this.webServer = factory.getWebServer(new EchoHandler());
+		this.webServer.start();
+		assertThat(this.webServer.getPort()).isGreaterThan(0);
+		this.webServer.stop();
+		assertThat(this.webServer.getPort()).isEqualTo(-1);
+	}
+
+	@Test
 	void basicSslFromClassPath() {
 		testBasicSslWithKeyStore("classpath:test.jks", "password");
 	}
@@ -131,6 +141,7 @@ public abstract class AbstractReactiveWebServerFactoryTests {
 		Ssl ssl = new Ssl();
 		ssl.setKeyStore(keyStore);
 		ssl.setKeyPassword(keyPassword);
+		ssl.setKeyStorePassword("secret");
 		factory.setSsl(ssl);
 		this.webServer = factory.getWebServer(new EchoHandler());
 		this.webServer.start();
@@ -149,6 +160,7 @@ public abstract class AbstractReactiveWebServerFactoryTests {
 		AbstractReactiveWebServerFactory factory = getFactory();
 		Ssl ssl = new Ssl();
 		ssl.setKeyStore(keyStore);
+		ssl.setKeyStorePassword("secret");
 		ssl.setKeyPassword(keyPassword);
 		ssl.setKeyAlias("test-alias");
 		factory.setSsl(ssl);
@@ -183,10 +195,9 @@ public abstract class AbstractReactiveWebServerFactoryTests {
 	}
 
 	protected ReactorClientHttpConnector buildTrustAllSslConnector() {
-		SslContextBuilder builder = SslContextBuilder.forClient().sslProvider(SslProvider.JDK)
-				.trustManager(InsecureTrustManagerFactory.INSTANCE);
-		HttpClient client = HttpClient.create().wiretap(true)
-				.secure((sslContextSpec) -> sslContextSpec.sslContext(builder));
+		Http11SslContextSpec sslContextSpec = Http11SslContextSpec.forClient().configure(
+				(builder) -> builder.sslProvider(SslProvider.JDK).trustManager(InsecureTrustManagerFactory.INSTANCE));
+		HttpClient client = HttpClient.create().wiretap(true).secure((spec) -> spec.sslContext(sslContextSpec));
 		return new ReactorClientHttpConnector(client);
 	}
 
@@ -196,6 +207,7 @@ public abstract class AbstractReactiveWebServerFactoryTests {
 		ssl.setClientAuth(Ssl.ClientAuth.WANT);
 		ssl.setKeyStore("classpath:test.jks");
 		ssl.setKeyPassword("password");
+		ssl.setKeyStorePassword("secret");
 		ssl.setTrustStore("classpath:test.jks");
 		testClientAuthSuccess(ssl, buildTrustAllSslWithClientKeyConnector());
 	}
@@ -207,19 +219,23 @@ public abstract class AbstractReactiveWebServerFactoryTests {
 		ssl.setKeyStore("classpath:test.jks");
 		ssl.setKeyPassword("password");
 		ssl.setTrustStore("classpath:test.jks");
+		ssl.setKeyStorePassword("secret");
 		testClientAuthSuccess(ssl, buildTrustAllSslConnector());
 	}
 
 	protected ReactorClientHttpConnector buildTrustAllSslWithClientKeyConnector() throws Exception {
 		KeyStore clientKeyStore = KeyStore.getInstance(KeyStore.getDefaultType());
-		clientKeyStore.load(new FileInputStream(new File("src/test/resources/test.jks")), "secret".toCharArray());
+		try (InputStream stream = new FileInputStream("src/test/resources/test.jks")) {
+			clientKeyStore.load(stream, "secret".toCharArray());
+		}
 		KeyManagerFactory clientKeyManagerFactory = KeyManagerFactory
 				.getInstance(KeyManagerFactory.getDefaultAlgorithm());
 		clientKeyManagerFactory.init(clientKeyStore, "password".toCharArray());
-		SslContextBuilder builder = SslContextBuilder.forClient().sslProvider(SslProvider.JDK)
-				.trustManager(InsecureTrustManagerFactory.INSTANCE).keyManager(clientKeyManagerFactory);
-		HttpClient client = HttpClient.create().wiretap(true)
-				.secure((sslContextSpec) -> sslContextSpec.sslContext(builder));
+
+		Http11SslContextSpec sslContextSpec = Http11SslContextSpec.forClient()
+				.configure((builder) -> builder.sslProvider(SslProvider.JDK)
+						.trustManager(InsecureTrustManagerFactory.INSTANCE).keyManager(clientKeyManagerFactory));
+		HttpClient client = HttpClient.create().wiretap(true).secure((spec) -> spec.sslContext(sslContextSpec));
 		return new ReactorClientHttpConnector(client);
 	}
 
@@ -240,6 +256,7 @@ public abstract class AbstractReactiveWebServerFactoryTests {
 		Ssl ssl = new Ssl();
 		ssl.setClientAuth(Ssl.ClientAuth.NEED);
 		ssl.setKeyStore("classpath:test.jks");
+		ssl.setKeyStorePassword("secret");
 		ssl.setKeyPassword("password");
 		ssl.setTrustStore("classpath:test.jks");
 		testClientAuthSuccess(ssl, buildTrustAllSslWithClientKeyConnector());
@@ -250,6 +267,7 @@ public abstract class AbstractReactiveWebServerFactoryTests {
 		Ssl ssl = new Ssl();
 		ssl.setClientAuth(Ssl.ClientAuth.NEED);
 		ssl.setKeyStore("classpath:test.jks");
+		ssl.setKeyStorePassword("secret");
 		ssl.setKeyPassword("password");
 		ssl.setTrustStore("classpath:test.jks");
 		testClientAuthFailure(ssl, buildTrustAllSslConnector());

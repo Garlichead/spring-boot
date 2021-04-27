@@ -205,6 +205,10 @@
       "description": "Session tracking modes."
     },
     {
+      "name": "server.shutdown",
+      "defaultValue": "immediate"
+    },
+    {
       "name": "server.ssl.ciphers",
       "description": "Supported SSL ciphers."
     },
@@ -265,9 +269,6 @@
     {
       "name": "server.ssl.trust-store-type",
       "description": "Type of the trust store."
-    },
-    { "name": "server.shutdown",
-      "defaultValue:": "immediate"
     },
     {
       "name": "server.tomcat.max-http-post-size",
@@ -621,7 +622,7 @@
       "name": "spring.data.jpa.repositories.bootstrap-mode",
       "type": "org.springframework.data.repository.config.BootstrapMode",
       "description": "Bootstrap mode for JPA repositories.",
-      "defaultValue": "deferred"
+      "defaultValue": "default"
     },
     {
       "name": "spring.data.jpa.repositories.enabled",
@@ -747,7 +748,11 @@
       "name": "spring.data.solr.repositories.enabled",
       "type": "java.lang.Boolean",
       "description": "Whether to enable Solr repositories.",
-      "defaultValue": true
+      "defaultValue": true,
+      "deprecation": {
+        "reason": "Spring Data Solr is deprecated.",
+        "level": "warning"
+      }
     },
     {
       "name": "spring.datasource.initialization-mode",
@@ -855,6 +860,10 @@
       "defaultValue": [
         "classpath:db/migration"
       ]
+    },
+    {
+      "name": "spring.flyway.lock-retry-count",
+      "defaultValue": 50
     },
     {
       "name": "spring.flyway.sql-migration-suffix",
@@ -1313,6 +1322,10 @@
       }
     },
     {
+      "name": "spring.kafka.consumer.isolation-level",
+      "defaultValue": "read-uncommitted"
+    },
+    {
       "name": "spring.kafka.consumer.ssl.keystore-location",
       "type": "org.springframework.core.io.Resource",
       "description": "Location of the key store file.",
@@ -1507,6 +1520,14 @@
       "defaultValue": "accept-header"
     },
     {
+      "name": "spring.mvc.pathmatch.matching-strategy",
+      "defaultValue": "ant-path-matcher"
+    },
+    {
+      "name": "spring.neo4j.security.trust-strategy",
+      "defaultValue": "trust-system-ca-signed-certificates"
+    },
+    {
       "name": "spring.neo4j.uri",
       "defaultValue": "bolt://localhost:7687"
     },
@@ -1658,6 +1679,10 @@
     {
       "name": "spring.thymeleaf.suffix",
       "defaultValue": ".html"
+    },
+    {
+      "name": "spring.web.locale-resolver",
+      "defaultValue": "accept-header"
     },
     {
       "name": "spring.webflux.hiddenmethod.filter.enabled",

@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2020 the original author or authors.
+ * Copyright 2012-2021 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -164,7 +164,8 @@ public class SpringApplication {
 	/**
 	 * The class name of application context that will be used by default for non-web
 	 * environments.
-	 * @deprecated since 2.4.0 in favour of using a {@link ApplicationContextFactory}
+	 * @deprecated since 2.4.0 for removal in 2.6.0 in favor of using a
+	 * {@link ApplicationContextFactory}
 	 */
 	@Deprecated
 	public static final String DEFAULT_CONTEXT_CLASS = "org.springframework.context."
@@ -173,7 +174,8 @@ public class SpringApplication {
 	/**
 	 * The class name of application context that will be used by default for web
 	 * environments.
-	 * @deprecated since 2.4.0 in favour of using an {@link ApplicationContextFactory}
+	 * @deprecated since 2.4.0 for removal in 2.6.0 in favor of using an
+	 * {@link ApplicationContextFactory}
 	 */
 	@Deprecated
 	public static final String DEFAULT_SERVLET_WEB_CONTEXT_CLASS = "org.springframework.boot."
@@ -182,7 +184,8 @@ public class SpringApplication {
 	/**
 	 * The class name of application context that will be used by default for reactive web
 	 * environments.
-	 * @deprecated since 2.4.0 in favour of using an {@link ApplicationContextFactory}
+	 * @deprecated since 2.4.0 for removal in 2.6.0 in favor of using an
+	 * {@link ApplicationContextFactory}
 	 */
 	@Deprecated
 	public static final String DEFAULT_REACTIVE_WEB_CONTEXT_CLASS = "org.springframework."
@@ -236,7 +239,7 @@ public class SpringApplication {
 
 	private Map<String, Object> defaultProperties;
 
-	private List<Bootstrapper> bootstrappers;
+	private List<BootstrapRegistryInitializer> bootstrapRegistryInitializers;
 
 	private Set<String> additionalProfiles = Collections.emptySet();
 
@@ -280,10 +283,20 @@ public class SpringApplication {
 		Assert.notNull(primarySources, "PrimarySources must not be null");
 		this.primarySources = new LinkedHashSet<>(Arrays.asList(primarySources));
 		this.webApplicationType = WebApplicationType.deduceFromClasspath();
-		this.bootstrappers = new ArrayList<>(getSpringFactoriesInstances(Bootstrapper.class));
+		this.bootstrapRegistryInitializers = getBootstrapRegistryInitializersFromSpringFactories();
 		setInitializers((Collection) getSpringFactoriesInstances(ApplicationContextInitializer.class));
 		setListeners((Collection) getSpringFactoriesInstances(ApplicationListener.class));
 		this.mainApplicationClass = deduceMainApplicationClass();
+	}
+
+	@SuppressWarnings("deprecation")
+	private List<BootstrapRegistryInitializer> getBootstrapRegistryInitializersFromSpringFactories() {
+		ArrayList<BootstrapRegistryInitializer> initializers = new ArrayList<>();
+		getSpringFactoriesInstances(Bootstrapper.class).stream()
+				.map((bootstrapper) -> ((BootstrapRegistryInitializer) bootstrapper::initialize))
+				.forEach(initializers::add);
+		initializers.addAll(getSpringFactoriesInstances(BootstrapRegistryInitializer.class));
+		return initializers;
 	}
 
 	private Class<?> deduceMainApplicationClass() {
@@ -349,7 +362,7 @@ public class SpringApplication {
 
 	private DefaultBootstrapContext createBootstrapContext() {
 		DefaultBootstrapContext bootstrapContext = new DefaultBootstrapContext();
-		this.bootstrappers.forEach((initializer) -> initializer.intitialize(bootstrapContext));
+		this.bootstrapRegistryInitializers.forEach((initializer) -> initializer.initialize(bootstrapContext));
 		return bootstrapContext;
 	}
 
@@ -513,7 +526,9 @@ public class SpringApplication {
 	 */
 	protected void configurePropertySources(ConfigurableEnvironment environment, String[] args) {
 		MutablePropertySources sources = environment.getPropertySources();
-		DefaultPropertiesPropertySource.ifNotEmpty(this.defaultProperties, sources::addLast);
+		if (!CollectionUtils.isEmpty(this.defaultProperties)) {
+			DefaultPropertiesPropertySource.addOrMerge(this.defaultProperties, sources);
+		}
 		if (this.addCommandLineProperties && args.length > 0) {
 			String name = CommandLinePropertySource.COMMAND_LINE_PROPERTY_SOURCE_NAME;
 			if (sources.contains(name)) {
@@ -750,7 +765,7 @@ public class SpringApplication {
 	/**
 	 * Refresh the underlying {@link ApplicationContext}.
 	 * @param applicationContext the application context to refresh
-	 * @deprecated since 2.3.0 in favor of
+	 * @deprecated since 2.3.0 for removal in 2.5.0 in favor of
 	 * {@link #refresh(ConfigurableApplicationContext)}
 	 */
 	@Deprecated
@@ -1052,10 +1067,24 @@ public class SpringApplication {
 	 * {@link BootstrapRegistry}.
 	 * @param bootstrapper the bootstraper
 	 * @since 2.4.0
+	 * @deprecated since 2.4.5 for removal in 2.6 in favor of
+	 * {@link #addBootstrapRegistryInitializer(BootstrapRegistryInitializer)}
 	 */
+	@Deprecated
 	public void addBootstrapper(Bootstrapper bootstrapper) {
 		Assert.notNull(bootstrapper, "Bootstrapper must not be null");
-		this.bootstrappers.add(bootstrapper);
+		this.bootstrapRegistryInitializers.add(bootstrapper::initialize);
+	}
+
+	/**
+	 * Adds {@link BootstrapRegistryInitializer} instances that can be used to initialize
+	 * the {@link BootstrapRegistry}.
+	 * @param bootstrapRegistryInitializer the bootstrap registry initializer to add
+	 * @since 2.4.5
+	 */
+	public void addBootstrapRegistryInitializer(BootstrapRegistryInitializer bootstrapRegistryInitializer) {
+		Assert.notNull(bootstrapRegistryInitializer, "BootstrapRegistryInitializer must not be null");
+		this.bootstrapRegistryInitializers.addAll(Arrays.asList(bootstrapRegistryInitializer));
 	}
 
 	/**
@@ -1192,7 +1221,7 @@ public class SpringApplication {
 	 * applications or {@link AnnotationConfigApplicationContext} for non web based
 	 * applications.
 	 * @param applicationContextClass the context class to set
-	 * @deprecated since 2.4.0 in favor of
+	 * @deprecated since 2.4.0 for removal in 2.6.0 in favor of
 	 * {@link #setApplicationContextFactory(ApplicationContextFactory)}
 	 */
 	@Deprecated
@@ -1274,6 +1303,7 @@ public class SpringApplication {
 	/**
 	 * Set the {@link ApplicationStartup} to use for collecting startup metrics.
 	 * @param applicationStartup the application startup to use
+	 * @since 2.4.0
 	 */
 	public void setApplicationStartup(ApplicationStartup applicationStartup) {
 		this.applicationStartup = (applicationStartup != null) ? applicationStartup : ApplicationStartup.DEFAULT;
@@ -1282,6 +1312,7 @@ public class SpringApplication {
 	/**
 	 * Returns the {@link ApplicationStartup} used for collecting startup metrics.
 	 * @return the application startup
+	 * @since 2.4.0
 	 */
 	public ApplicationStartup getApplicationStartup() {
 		return this.applicationStartup;

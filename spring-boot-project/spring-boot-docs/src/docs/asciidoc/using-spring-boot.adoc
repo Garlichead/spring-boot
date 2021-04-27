@@ -542,7 +542,10 @@ To include devtools support, add the module dependency to your build, as shown i
 
 NOTE: Developer tools are automatically disabled when running a fully packaged application.
 If your application is launched from `java -jar` or if it is started from a special classloader, then it is considered a "`production application`".
-If that does not apply to you (i.e. if you run your application from a container), consider excluding devtools or set the `-Dspring.devtools.restart.enabled=false` system property.
+You can control this behavior by using the `spring.devtools.restart.enabled` system property.
+To enable devtools, irrespective of the classloader used to launch your application, set the `-Dspring.devtools.restart.enabled=true` system property.
+This must not be done in a production environment where running devtools is a security risk.
+To disable devtools, exclude the dependency or set the `-Dspring.devtools.restart.enabled=false` system property.
 
 TIP: Flagging the dependency as optional in Maven or using the `developmentOnly` configuration in Gradle (as shown above) prevents devtools from being transitively applied to other modules that use your project.
 
@@ -586,13 +589,15 @@ Note that certain resources, such as static assets and view templates, <<using-b
 .Triggering a restart
 ****
 As DevTools monitors classpath resources, the only way to trigger a restart is to update the classpath.
-The way in which you cause the classpath to be updated depends on the IDE that you are using.
-In Eclipse, saving a modified file causes the classpath to be updated and triggers a restart.
-In IntelliJ IDEA, building the project (`Build +->+ Build Project`) has the same effect.
+The way in which you cause the classpath to be updated depends on the IDE that you are using:
+
+* In Eclipse, saving a modified file causes the classpath to be updated and triggers a restart.
+* In IntelliJ IDEA, building the project (`Build +->+ Build Project`) has the same effect.
+* If using a build plugin, running `mvn compile` for Maven or `gradle build` for Gradle will trigger a restart.
 ****
 
-NOTE: As long as forking is enabled, you can also start your application by using the supported build plugins (Maven and Gradle), since DevTools needs an isolated application classloader to operate properly.
-By default, the Gradle and Maven plugins fork the application process.
+NOTE: If you are restarting with Maven or Gradle using the build plugin you must leave the `forking` set to `enabled`.
+If you disable forking, the isolated application classloader used by devtools will not be created and restarts will not operate properly.
 
 TIP: Automatic restart works very well when used with LiveReload.
 <<using-boot-devtools-livereload,See the LiveReload section>> for details.
@@ -601,8 +606,6 @@ Other devtools features (such as LiveReload and property overrides) can still be
 
 NOTE: DevTools relies on the application context's shutdown hook to close it during a restart.
 It does not work correctly if you have disabled the shutdown hook (`SpringApplication.setRegisterShutdownHook(false)`).
-
-NOTE: When deciding if an entry on the classpath should trigger a restart when it changes, DevTools automatically ignores projects named `spring-boot`, `spring-boot-devtools`, `spring-boot-autoconfigure`, `spring-boot-actuator`, and `spring-boot-starter`.
 
 NOTE: DevTools needs to customize the `ResourceLoader` used by the `ApplicationContext`.
 If your application provides one already, it is going to be wrapped.
@@ -637,6 +640,7 @@ To disable the logging of the report, set the following property:
 	    restart:
 	      log-condition-evaluation-delta: false
 ----
+
 
 
 [[using-boot-devtools-restart-exclude]]
@@ -867,6 +871,7 @@ The client component must be launched manually.
 
 
 
+[[running-remote-client-application]]
 ==== Running the Remote Client Application
 The remote client application is designed to be run from within your IDE.
 You need to run `org.springframework.boot.devtools.RemoteSpringApplication` with the same classpath as the remote project that you connect to.

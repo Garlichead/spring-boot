@@ -66,7 +66,7 @@ class StandardConfigDataReference {
 		return this.resourceLocation;
 	}
 
-	boolean isNonOptionalDirectory() {
+	boolean isMandatoryDirectory() {
 		return !this.configDataLocation.isOptional() && this.directory != null;
 	}
 
@@ -74,12 +74,12 @@ class StandardConfigDataReference {
 		return this.directory;
 	}
 
-	boolean isSkippable() {
-		return this.configDataLocation.isOptional() || this.directory != null || this.profile != null;
+	String getProfile() {
+		return this.profile;
 	}
 
-	boolean isPatternLocation() {
-		return this.resourceLocation.contains("*");
+	boolean isSkippable() {
+		return this.configDataLocation.isOptional() || this.directory != null || this.profile != null;
 	}
 
 	PropertySourceLoader getPropertySourceLoader() {

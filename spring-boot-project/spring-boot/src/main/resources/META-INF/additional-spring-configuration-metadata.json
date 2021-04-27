@@ -21,12 +21,12 @@
     },
     {
       "name": "logging.charset.console",
-      "type": "java.nio.Charset",
+      "type": "java.nio.charset.Charset",
       "description": "Charset to use for console output."
     },
     {
       "name": "logging.charset.file",
-      "type": "java.nio.Charset",
+      "type": "java.nio.charset.Charset",
       "description": "Charset to use for file output."
     },
     {
@@ -120,8 +120,7 @@
       "sourceType": "org.springframework.boot.context.logging.LoggingApplicationListener",
       "defaultValue": "${LOG_FILE}.%d{yyyy-MM-dd}.%i.gz",
       "deprecation": {
-        "replacement": "logging.logback.rollingpolicy.file-name-pattern",
-        "level": "error"
+        "replacement": "logging.logback.rollingpolicy.file-name-pattern"
       }
     },
     {
@@ -131,8 +130,7 @@
       "sourceType": "org.springframework.boot.context.logging.LoggingApplicationListener",
       "defaultValue": false,
       "deprecation": {
-        "replacement": "logging.logback.rollingpolicy.clean-history-on-start",
-        "level": "error"
+        "replacement": "logging.logback.rollingpolicy.clean-history-on-start"
       }
     },
     {
@@ -142,8 +140,7 @@
       "sourceType": "org.springframework.boot.context.logging.LoggingApplicationListener",
       "defaultValue": "10MB",
       "deprecation": {
-        "replacement": "logging.logback.rollingpolicy.max-file-size",
-        "level": "error"
+        "replacement": "logging.logback.rollingpolicy.max-file-size"
       }
     },
     {
@@ -153,8 +150,7 @@
       "sourceType": "org.springframework.boot.context.logging.LoggingApplicationListener",
       "defaultValue": "0B",
       "deprecation": {
-        "replacement": "logging.logback.rollingpolicy.total-size-cap",
-        "level": "error"
+        "replacement": "logging.logback.rollingpolicy.total-size-cap"
       }
     },
     {
@@ -164,8 +160,7 @@
       "sourceType": "org.springframework.boot.context.logging.LoggingApplicationListener",
       "defaultValue": 7,
       "deprecation": {
-        "replacement": "logging.logback.rollingpolicy.max-history",
-        "level": "error"
+        "replacement": "logging.logback.rollingpolicy.max-history"
       }
     },
     {
@@ -279,10 +274,28 @@
       "defaultValue": true
     },
     {
+      "name": "spring.config.activate.on-cloud-platform",
+      "type": "org.springframework.boot.cloud.CloudPlatform",
+      "description": "Required cloud platform for the document to be included.",
+      "sourceType": "org.springframework.boot.context.config.ConfigDataProperties"
+    },
+    {
+      "name": "spring.config.activate.on-profile",
+      "type": "java.lang.String[]",
+      "description": "Profile expressions that should match for the document to be included.",
+      "sourceType": "org.springframework.boot.context.config.ConfigDataProperties"
+    },
+    {
       "name": "spring.config.additional-location",
       "type": "java.lang.String",
       "sourceType": "org.springframework.boot.context.config.ConfigFileApplicationListener",
       "description": "Config file locations used in addition to the defaults."
+    },
+    {
+      "name": "spring.config.import",
+      "type": "java.util.List<java.lang.String>",
+      "description": "Import additional config data.",
+      "sourceType": "org.springframework.boot.context.config.ConfigDataProperties"
     },
     {
       "name": "spring.config.location",
@@ -296,6 +309,12 @@
       "sourceType": "org.springframework.boot.context.config.ConfigFileApplicationListener",
       "description": "Config file name.",
       "defaultValue": "application"
+    },
+    {
+      "name": "spring.config.use-legacy-processing",
+      "type": "java.lang.Boolean",
+      "description": "Whether to enable configuration data processing legacy mode.",
+      "defaultValue": false
     },
     {
       "name": "spring.jta.atomikos.connectionfactory.borrow-connection-timeout",
@@ -832,8 +851,14 @@
     {
       "name": "spring.profiles.include",
       "type": "java.util.List<java.lang.String>",
-      "sourceType": "org.springframework.boot.context.config.ConfigFileApplicationListener",
+      "sourceType": "org.springframework.boot.context.config.Profiles",
       "description": "Unconditionally activate the specified comma-separated list of profiles (or list of profiles if using YAML)."
+    },
+    {
+      "name": "spring.profiles.group",
+      "type": "java.util.Map<java.lang.String,java.util.List<java.lang.String>>",
+      "sourceType": "org.springframework.boot.context.config.Profiles",
+      "description": "Profile groups to define a logical name for a related group of profiles."
     },
     {
       "name": "spring.reactor.debug-agent.enabled",
@@ -848,24 +873,6 @@
       "description": "Enable trace logs.",
       "sourceType": "org.springframework.boot.context.logging.LoggingApplicationListener",
       "defaultValue": false
-    },
-    {
-      "name": "spring.config.import",
-      "type": "java.util.List<java.lang.String>",
-      "description": "Import additional config data.",
-      "sourceType": "org.springframework.boot.context.config.ConfigDataProperties"
-    },
-    {
-      "name": "spring.config.activate.on-cloud-platform",
-      "type": "org.springframework.boot.cloud.CloudPlatform",
-      "description": "Required cloud platform for the document to be included.",
-      "sourceType": "org.springframework.boot.context.config.ConfigDataProperties"
-    },
-    {
-      "name": "spring.config.activate.on-profile",
-      "type": "java.lang.String[]",
-      "description": "Profile expressions that should match for the document to be included.",
-      "sourceType": "org.springframework.boot.context.config.ConfigDataProperties"
     }
   ],
   "hints": [

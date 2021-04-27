@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2020 the original author or authors.
+ * Copyright 2012-2021 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,6 +42,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.jdbc.EmbeddedDataSourceConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.JdbcTemplateAutoConfiguration;
+import org.springframework.boot.autoconfigure.jooq.JooqAutoConfiguration;
 import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration;
 import org.springframework.boot.context.event.ApplicationStartingEvent;
 import org.springframework.boot.jdbc.DataSourceBuilder;
@@ -73,6 +74,7 @@ import static org.assertj.core.api.Assertions.contentOf;
  * @author András Deák
  * @author Andrii Hrytsiuk
  * @author Ferenc Gratzer
+ * @author Evgeniy Cheban
  */
 @ExtendWith(OutputCaptureExtension.class)
 class LiquibaseAutoConfigurationTests {
@@ -222,6 +224,38 @@ class LiquibaseAutoConfigurationTests {
 					DataSource dataSource = liquibase.getDataSource();
 					assertThat(((HikariDataSource) dataSource).isClosed()).isTrue();
 					assertThat(((HikariDataSource) dataSource).getJdbcUrl()).isEqualTo("jdbc:hsqldb:mem:liquibase");
+					assertThat(((HikariDataSource) dataSource).getDriverClassName())
+							.isEqualTo("org.hsqldb.jdbc.JDBCDriver");
+				}));
+	}
+
+	@Test
+	void overrideDataSourceAndDriverClassName() {
+		String jdbcUrl = "jdbc:hsqldb:mem:liquibase";
+		String driverClassName = "org.hsqldb.jdbcDriver";
+		this.contextRunner.withUserConfiguration(EmbeddedDataSourceConfiguration.class)
+				.withPropertyValues("spring.liquibase.url:" + jdbcUrl,
+						"spring.liquibase.driver-class-name:" + driverClassName)
+				.run(assertLiquibase((liquibase) -> {
+					DataSource dataSource = liquibase.getDataSource();
+					assertThat(((HikariDataSource) dataSource).isClosed()).isTrue();
+					assertThat(((HikariDataSource) dataSource).getJdbcUrl()).isEqualTo(jdbcUrl);
+					assertThat(((HikariDataSource) dataSource).getDriverClassName()).isEqualTo(driverClassName);
+				}));
+	}
+
+	@Test
+	void overrideDataSourceWithFallbackDriverClassName() {
+		String jdbcUrl = "jdbc:hsqldb:mem:liquibase";
+		String driverClassName = "org.hsqldb.jdbcDriver";
+		this.contextRunner.withUserConfiguration(EmbeddedDataSourceConfiguration.class)
+				.withPropertyValues("spring.liquibase.url:" + jdbcUrl,
+						"spring.datasource.driver-class-name:" + driverClassName)
+				.run(assertLiquibase((liquibase) -> {
+					DataSource dataSource = liquibase.getDataSource();
+					assertThat(((HikariDataSource) dataSource).isClosed()).isTrue();
+					assertThat(((HikariDataSource) dataSource).getJdbcUrl()).isEqualTo(jdbcUrl);
+					assertThat(((HikariDataSource) dataSource).getDriverClassName()).isEqualTo(driverClassName);
 				}));
 	}
 
@@ -303,7 +337,7 @@ class LiquibaseAutoConfigurationTests {
 				.withPropertyValues("spring.liquibase.parameters.foo:bar").run(assertLiquibase((liquibase) -> {
 					Map<String, String> parameters = (Map<String, String>) ReflectionTestUtils.getField(liquibase,
 							"parameters");
-					assertThat(parameters.containsKey("foo")).isTrue();
+					assertThat(parameters).containsKey("foo");
 					assertThat(parameters.get("foo")).isEqualTo("bar");
 				}));
 	}
@@ -373,6 +407,25 @@ class LiquibaseAutoConfigurationTests {
 		this.contextRunner.withUserConfiguration(EmbeddedDataSourceConfiguration.class)
 				.withPropertyValues("spring.liquibase.tag:1.0.0")
 				.run(assertLiquibase((liquibase) -> assertThat(liquibase.getTag()).isEqualTo("1.0.0")));
+	}
+
+	@Test
+	void whenLiquibaseIsAutoConfiguredThenJooqDslContextDependsOnSpringLiquibaseBeans() {
+		this.contextRunner.withConfiguration(AutoConfigurations.of(JooqAutoConfiguration.class))
+				.withUserConfiguration(EmbeddedDataSourceConfiguration.class).run((context) -> {
+					BeanDefinition beanDefinition = context.getBeanFactory().getBeanDefinition("dslContext");
+					assertThat(beanDefinition.getDependsOn()).containsExactly("liquibase");
+				});
+	}
+
+	@Test
+	void whenCustomSpringLiquibaseIsDefinedThenJooqDslContextDependsOnSpringLiquibaseBeans() {
+		this.contextRunner.withConfiguration(AutoConfigurations.of(JooqAutoConfiguration.class))
+				.withUserConfiguration(LiquibaseUserConfiguration.class, EmbeddedDataSourceConfiguration.class)
+				.run((context) -> {
+					BeanDefinition beanDefinition = context.getBeanFactory().getBeanDefinition("dslContext");
+					assertThat(beanDefinition.getDependsOn()).containsExactly("springLiquibase");
+				});
 	}
 
 	private ContextConsumer<AssertableApplicationContext> assertLiquibase(Consumer<SpringLiquibase> consumer) {

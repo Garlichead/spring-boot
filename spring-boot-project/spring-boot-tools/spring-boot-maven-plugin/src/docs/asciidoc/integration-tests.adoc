@@ -10,7 +10,6 @@ To make sure that the lifecycle of your Spring Boot application is properly mana
 		<plugin>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-maven-plugin</artifactId>
-			<version>{gradle-project-version}</version>
 			<executions>
 				<execution>
 					<id>pre-integration-test</id>
@@ -36,6 +35,25 @@ NOTE: By default, the application is started in a separate process and JMX is us
 If you need to configure the JMX port, see <<integration-tests-example-jmx-port,the dedicated example>>.
 
 You could also configure a more advanced setup to skip the integration tests when a specific property has been set, see <<integration-tests-example-skip,the dedicated example>>.
+
+
+
+[[integration-tests-no-starter-parent]]
+=== Using Failsafe Without Spring Boot's Parent POM
+Spring Boot's Parent POM, `spring-boot-starter-parent`, configures Failsafe's `<classesDirectory>` to be `${project.build.outputDirectory}`.
+Without this configuration, which causes Failsafe to use the compiled classes rather than the repackaged jar, Failsafe cannot load your application's classes.
+If you are not using the parent POM, you should configure Failsafe in the same way, as shown in the following example:
+
+[source,xml,indent=0,subs="verbatim,attributes"]
+----
+<plugin>
+	<groupId>org.apache.maven.plugins</groupId>
+	<artifactId>maven-failsafe-plugin</artifactId>
+	<configuration>
+		<classesDirectory>${project.build.outputDirectory}</classesDirectory>
+	</configuration>
+</plugin>
+----
 
 include::goals/start.adoc[leveloffset=+1]
 
@@ -63,7 +81,6 @@ The example below showcases how you could achieve the same feature using the htt
 				<plugin>
 					<groupId>org.codehaus.mojo</groupId>
 					<artifactId>build-helper-maven-plugin</artifactId>
-					<version>{build-helper-maven-plugin-version}</version>
 					<executions>
 						<execution>
 							<id>reserve-tomcat-port</id>
@@ -82,7 +99,6 @@ The example below showcases how you could achieve the same feature using the htt
 				<plugin>
 					<groupId>org.springframework.boot</groupId>
 					<artifactId>spring-boot-maven-plugin</artifactId>
-					<version>{gradle-project-version}</version>
 					<executions>
 						<execution>
 							<id>pre-integration-test</id>
@@ -106,7 +122,6 @@ The example below showcases how you could achieve the same feature using the htt
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-failsafe-plugin</artifactId>
-					<version>{maven-failsafe-plugin-version}</version>
 					<configuration>
 						<systemPropertyVariables>
 							<test.server.port>${tomcat.http.port}</test.server.port>
@@ -136,8 +151,7 @@ This example shows how you can customize the port in case `9001` is already used
 				<plugin>
 					<groupId>org.springframework.boot</groupId>
 					<artifactId>spring-boot-maven-plugin</artifactId>
-					<version>{gradle-project-version}</version>
-					<configuration>
+                    <configuration>
 						<jmxPort>9009</jmxPort>
 					</configuration>
 					<executions>
@@ -146,18 +160,12 @@ This example shows how you can customize the port in case `9001` is already used
 							<goals>
 								<goal>start</goal>
 							</goals>
-							<configuration>
-								<skip>${skip.it}</skip>
-							</configuration>
 						</execution>
 						<execution>
 							<id>post-integration-test</id>
 							<goals>
 								<goal>stop</goal>
 							</goals>
-							<configuration>
-								<skip>${skip.it}</skip>
-							</configuration>
 						</execution>
 					</executions>
 				</plugin>
@@ -187,7 +195,6 @@ This example shows how you can skip integration tests with a command-line proper
 				<plugin>
 					<groupId>org.springframework.boot</groupId>
 					<artifactId>spring-boot-maven-plugin</artifactId>
-					<version>{gradle-project-version}</version>
 					<executions>
 						<execution>
 							<id>pre-integration-test</id>
@@ -212,7 +219,6 @@ This example shows how you can skip integration tests with a command-line proper
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-failsafe-plugin</artifactId>
-					<version>{maven-failsafe-plugin-version}</version>
 					<configuration>
 						<skip>${skip.it}</skip>
 					</configuration>
