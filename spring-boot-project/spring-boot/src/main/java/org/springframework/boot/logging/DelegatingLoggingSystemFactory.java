@@ -41,6 +41,7 @@ class DelegatingLoggingSystemFactory implements LoggingSystemFactory {
 		List<LoggingSystemFactory> delegates = (this.delegates != null) ? this.delegates.apply(classLoader) : null;
 		if (delegates != null) {
 			for (LoggingSystemFactory delegate : delegates) {
+				// 🤥🤕 加载日志的顺序
 				LoggingSystem loggingSystem = delegate.getLoggingSystem(classLoader);
 				if (loggingSystem != null) {
 					return loggingSystem;
